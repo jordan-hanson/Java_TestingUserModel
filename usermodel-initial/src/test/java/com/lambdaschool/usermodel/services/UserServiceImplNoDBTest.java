@@ -5,15 +5,21 @@ import com.lambdaschool.usermodel.models.Role;
 import com.lambdaschool.usermodel.models.User;
 import com.lambdaschool.usermodel.models.UserRoles;
 import com.lambdaschool.usermodel.models.Useremail;
+import com.lambdaschool.usermodel.repository.UserRepository;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.*;
 
@@ -26,10 +32,22 @@ import static org.junit.Assert.*;
 // We have a spring made application so we need the springboottest annotation
 //properties is to use mock data during the testing process
 public class UserServiceImplNoDBTest {
-
+    @Autowired
+    private UserService userService;
 //    Mock -> Fake data
 //    Stubs -> Fake methods
 //    In Java - Mock and Stubs are both called mocks but reference fake data or methods to run tests.
+// Then Add a Mock Bean repo for the repos in the servicesImpl
+
+    @MockBean
+    private HelperFunctions helperFunctions;
+
+    @MockBean
+    private UserRepository userrepos;
+
+    @MockBean
+    private RoleService roleService;
+
 
     private List<User> userList = new ArrayList<>();
     @Before
@@ -137,6 +155,8 @@ public class UserServiceImplNoDBTest {
         u5.getUseremails().get(0).setUseremailid(6);
 
         userList.add(u5);
+
+        MockitoAnnotations.initMocks(this);
     }
 
     @After
@@ -145,10 +165,20 @@ public class UserServiceImplNoDBTest {
 
     @Test
     public void findUserById() {
+        Mockito.when(userrepos.findById(1L))
+                .thenReturn(Optional.of(userList.get(0)));
+
+        assertEquals("Test Admin", userService.findUserById(1).getUsername());
     }
 
     @Test
     public void findByNameContaining() {
+        Mockito.when(userrepos.findByUsernameContainingIgnoreCase("a"))
+                .thenReturn(userList);
+
+        assertEquals(5,
+                userService.findByNameContaining("a")
+                        .size());
     }
 
     @Test
