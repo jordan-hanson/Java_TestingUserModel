@@ -116,6 +116,7 @@ public class UserServiceImplNoDBTest {
                         "bunny@email.local"));
         u2.getUseremails().get(0).setUseremailid(3);
         u2.getUseremails().get(1).setUseremailid(4);
+        u2.getUseremails().get(2).setUseremailid(15);
 
         userList.add(u2);
 
@@ -141,7 +142,6 @@ public class UserServiceImplNoDBTest {
         u4.getRoles()
                 .add(new UserRoles(u4,
                         r2));
-        u4.getUseremails().get(0).setUseremailid(6);
 
         userList.add(u4);
 
@@ -152,7 +152,6 @@ public class UserServiceImplNoDBTest {
         u5.getRoles()
                 .add(new UserRoles(u5,
                         r2));
-        u5.getUseremails().get(0).setUseremailid(6);
 
         userList.add(u5);
 
@@ -168,7 +167,7 @@ public class UserServiceImplNoDBTest {
         Mockito.when(userrepos.findById(1L))
                 .thenReturn(Optional.of(userList.get(0)));
 
-        assertEquals("Test Admin", userService.findUserById(1).getUsername());
+        assertEquals("test admin", userService.findUserById(1).getUsername());
     }
 
     @Test
