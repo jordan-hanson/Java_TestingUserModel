@@ -1,12 +1,14 @@
-package com.lambdaschool.usermodel.services;
+package com.lambdaschool.usermodel.controllers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambdaschool.usermodel.UserModelApplicationTesting;
-import com.lambdaschool.usermodel.exceptions.ResourceNotFoundException;
 import com.lambdaschool.usermodel.models.Role;
 import com.lambdaschool.usermodel.models.User;
 import com.lambdaschool.usermodel.models.UserRoles;
 import com.lambdaschool.usermodel.models.Useremail;
-import com.lambdaschool.usermodel.repository.UserRepository;
+import com.lambdaschool.usermodel.services.UserService;
+import io.restassured.RestAssured;
+import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,45 +16,48 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.RequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.Assert.*;
 
-import static org.mockito.ArgumentMatchers.any;
-
 @RunWith(SpringRunner.class)
-//weed need springrunner for junit4 testing
-@SpringBootTest(classes = UserModelApplicationTesting.class,
-    properties = {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+classes = UserModelApplicationTesting.class,
+properties = {
         "command.line.runner.enabled=false"
-    })
-// We have a spring made application so we need the springboottest annotation
-//properties is to use mock data during the testing process
-public class UserServiceImplNoDBTest {
-    @Autowired
-    private UserService userService;
-//    Mock -> Fake data
-//    Stubs -> Fake methods
-//    In Java - Mock and Stubs are both called mocks but reference fake data or methods to run tests.
-// Then Add a Mock Bean repo for the repos in the servicesImpl
+})
+//For the Mock Controller.
+@AutoConfigureMockMvc
+//Set up withMockUser for the Authentication and Authorization we need.
+@WithMockUser(username= "testadmin",
+roles = {"USER", "ADMIN"})
+public class UserControllerNoDBTest {
 
-    @MockBean
-    private HelperFunctions helperFunctions;
+        @Autowired
+        private WebApplicationContext webApplicationContext;
 
-    @MockBean
-    private UserRepository userrepos;
+        private MockMvc mockMvc;
 
-    @MockBean
-    private RoleService roleService;
-
+        @MockBean
+        private UserService userService;
 
     private List<User> userList = new ArrayList<>();
+
     @Before
     public void setUp() throws Exception {
 
@@ -135,7 +140,13 @@ public class UserServiceImplNoDBTest {
 
         userList.add(u5);
 
-        MockitoAnnotations.initMocks(this);
+//        Set up the mock mvc
+//        Requires a maven dependency
+        RestAssuredMockMvc.webAppContextSetup(webApplicationContext);
+
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .apply(SecurityMockMvcConfigurers.springSecurity())
+                .build();
     }
 
     @After
@@ -143,93 +154,56 @@ public class UserServiceImplNoDBTest {
     }
 
     @Test
-    public void findUserById() {
-        Mockito.when(userrepos.findById(1L))
-                .thenReturn(Optional.of(userList.get(0)));
-
-        assertEquals("test admin", userService.findUserById(1).getUsername());
-    }
-
-    @Test(expected = ResourceNotFoundException.class)
-    public void findUserByIdNotFound() {
-        Mockito.when(userrepos.findById(100L))
-                .thenReturn(Optional.empty());
-
-        assertEquals("test admin", userService.findUserById(1).getUsername());
-    }
-
-    @Test
-    public void findByNameContaining() {
-        Mockito.when(userrepos.findByUsernameContainingIgnoreCase("a"))
+    public void listAllUsers() throws Exception {
+        Mockito.when(userService.findAll())
                 .thenReturn(userList);
 
-        assertEquals(5,
-                userService.findByNameContaining("a")
-                        .size());
-    }
+        RequestBuilder rb = MockMvcRequestBuilders.get("/users/users")
+                .accept(MediaType.APPLICATION_JSON);
+// perform will be red underlined so add after listAllUsers put throws Exception
+        MvcResult r  = mockMvc.perform(rb)
+                .andReturn();
+//        Extract The Response Entity now tr = test result
+        String testResult = r.getResponse().getContentAsString();
 
-    @Test
-    public void findAll() {
-    }
+//        Now convert Restaurant List into a string
+        ObjectMapper objectMapper = new ObjectMapper();
+        String expectedResponse = objectMapper.writeValueAsString(userList);
 
-    @Test
-    public void delete() {
-    }
-
-    @Test
-    public void findByName() {
-    }
-
-    @Test
-    public void save() {
-
-        User u1 = new User("admin",
-                "password",
-                "admin@lambdaschool.local");
-        Role r1 = new Role("admin");
-        r1.setRoleid(1);
-        u1.getRoles()
-                .add(new UserRoles(u1,
-                        r1));
-
-        u1.getUseremails()
-                .add(new Useremail(u1,
-                        "admin@email.local"));
-
-
-        Mockito.when(userrepos.findById(1L))
-                .thenReturn(Optional.of(u1));
-
-        Mockito.when(userrepos.save(any(User.class))).thenReturn(u1);
-
-        Mockito.when(roleService.findRoleById(1))
-                .thenReturn(r1);
-
-        User addUser = userrepos.save(u1);
-
-        assertEquals(addUser.getPrimaryemail(), u1.getPrimaryemail());
-    }
-
-    @Test
-    public void savePut() {
+        System.out.println(testResult);
+        assertEquals(expectedResponse, testResult);
 
     }
 
     @Test
-    public void saveUserNotFound() {
-
+    public void getUserById() {
     }
 
     @Test
-    public void saveRoleNotFound() {
-
+    public void getUserByName() {
     }
 
     @Test
-    public void update() {
+    public void getUserLikeName() {
     }
 
     @Test
-    public void deleteAll() {
+    public void addNewUser() {
+    }
+
+    @Test
+    public void updateFullUser() {
+    }
+
+    @Test
+    public void updateUser() {
+    }
+
+    @Test
+    public void deleteUserById() {
+    }
+
+    @Test
+    public void getCurrentUserInfo() {
     }
 }
