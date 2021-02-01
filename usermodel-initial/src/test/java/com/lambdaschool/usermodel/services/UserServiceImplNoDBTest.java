@@ -1,6 +1,7 @@
 package com.lambdaschool.usermodel.services;
 
 import com.lambdaschool.usermodel.UserModelApplicationTesting;
+import com.lambdaschool.usermodel.exceptions.ResourceNotFoundException;
 import com.lambdaschool.usermodel.models.Role;
 import com.lambdaschool.usermodel.models.User;
 import com.lambdaschool.usermodel.models.UserRoles;
@@ -170,6 +171,14 @@ public class UserServiceImplNoDBTest {
         assertEquals("test admin", userService.findUserById(1).getUsername());
     }
 
+    @Test(expected = ResourceNotFoundException.class)
+    public void findUserByIdNotFound() {
+        Mockito.when(userrepos.findById(100L))
+                .thenReturn(Optional.empty());
+
+        assertEquals("test admin", userService.findUserById(1).getUsername());
+    }
+
     @Test
     public void findByNameContaining() {
         Mockito.when(userrepos.findByUsernameContainingIgnoreCase("a"))
@@ -194,6 +203,7 @@ public class UserServiceImplNoDBTest {
 
     @Test
     public void save() {
+        
     }
 
     @Test
