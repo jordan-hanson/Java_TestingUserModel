@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -34,6 +35,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.*;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -188,7 +193,42 @@ public class UserControllerNoDBTest {
     }
 
     @Test
-    public void addNewUser() {
+    public void addNewUser() throws Exception{
+//        To add we need to add a new user to our controller it needs the @RequestBody
+//        found in the ControllerFile
+//        Headers return a httpStatus so we check for that:
+
+        User u1 = new User("admin",
+                "password",
+                "admin@lambdaschool.local");
+//        Set Id for User1 to 0 for first index for a POST
+        u1.setUserid(0);
+
+        Role r1 = new Role("admin");
+        r1.setRoleid(1);
+
+        u1.getRoles()
+                .add(new UserRoles(u1,
+                        r1));
+
+        u1.getUseremails()
+                .add(new Useremail(u1,
+                        "admin@email.local"));
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String userString = objectMapper.writeValueAsString(u1);
+
+        Mockito.when(userService.save(any(User.class)))
+                .thenReturn(u1);
+
+        RequestBuilder rb = MockMvcRequestBuilders.post("/users/user")
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userString);
+
+        mockMvc.perform(rb)
+                .andExpect(status().isCreated())
+                .andDo(MockMvcResultHandlers.print());
     }
 
     @Test

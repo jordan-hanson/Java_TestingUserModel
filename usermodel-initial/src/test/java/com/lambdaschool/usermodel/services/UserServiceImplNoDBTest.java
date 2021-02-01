@@ -183,9 +183,9 @@ public class UserServiceImplNoDBTest {
     @Test
     public void save() {
 
-        User u1 = new User("admin",
-                "password",
-                "admin@lambdaschool.local");
+        User u1 = new User("jordan",
+                "test password",
+                "jordan@lambdaschool.local");
         Role r1 = new Role("admin");
         r1.setRoleid(1);
         u1.getRoles()
